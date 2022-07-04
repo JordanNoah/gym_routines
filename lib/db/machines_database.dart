@@ -25,10 +25,12 @@ class MachinesDatabase {
   Future _createDB(Database db, int version) async {
     const idType = 'INTEGER PRIMARY KEY AUTOINCREMENT';
     const textType = 'TEXT NO NULL';
+    const intType = 'INTEGER NO NULL';
     await db.execute('''
       CREATE TABLE $tableMachines (
         ${NoteFields.id} $idType,
-        ${NoteFields.name} $textType
+        ${NoteFields.name} $textType,
+        ${NoteFields.type} $intType
       )      
     ''');
   }
@@ -71,7 +73,7 @@ class MachinesDatabase {
         where: '${NoteFields.id} = ?', whereArgs: [machine.id]);
   }
 
-  Future<int> delete(int id) async {
+  Future<int> delete(int? id) async {
     final db = await instance.database;
 
     return await db

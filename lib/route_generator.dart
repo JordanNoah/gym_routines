@@ -16,7 +16,7 @@ class RouterGenerator {
       case '/machines':
         return MaterialPageRoute(builder: (_) => const Machines());
       case '/machine_action':
-        return MaterialPageRoute(builder: (_) => const MachineAction());
+        return MaterialPageRoute(builder: (_) => MachineAction(id: args));
       default:
         return _errorRoute();
     }

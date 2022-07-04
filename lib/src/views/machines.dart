@@ -2,7 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:gym_routines/db/machines_database.dart';
 import 'package:gym_routines/model/machine.dart';
 import 'package:pull_to_refresh/pull_to_refresh.dart';
+import 'package:flutter_slidable/flutter_slidable.dart';
 import 'dart:developer';
+
+import 'package:sqflite/sqflite.dart';
 
 class Machines extends StatefulWidget {
   const Machines({Key? key}) : super(key: key);
@@ -12,32 +15,29 @@ class Machines extends StatefulWidget {
 }
 
 class _MachinesState extends State<Machines> {
-  List<String> items = ["1", "2", "3", "4", "5", "6", "7", "8"];
-  late List<Machine> response;
+  late List<Machine> items = [];
   late Machine machine;
   final RefreshController _refreshController =
       RefreshController(initialRefresh: true);
 
   @override
   void initState() {
-    // TODO: implement initState
     super.initState();
   }
 
   void _onRefresh() async {
     // monitor network fetch
     await Future.delayed(const Duration(milliseconds: 1000));
-    response = await MachinesDatabase.instance.readAllMachines();
-    log(response.toString());
+    items = await MachinesDatabase.instance.readAllMachines();
     // if failed,use refreshFailed()
     _refreshController.refreshCompleted();
+    if (mounted) setState(() {});
   }
 
   void _onLoading() async {
     // monitor network fetch
     await Future.delayed(const Duration(milliseconds: 1000));
     // if failed,use loadFailed(),if no data return,use LoadNodata()
-    items.add((items.length + 1).toString());
     if (mounted) setState(() {});
     _refreshController.loadComplete();
   }
@@ -54,7 +54,8 @@ class _MachinesState extends State<Machines> {
         children: [
           OutlinedButton(
               onPressed: () {
-                Navigator.pushNamed(context, '/machine_action');
+                Navigator.of(context)
+                    .pushNamed("/machine_action", arguments: null);
               },
               child: const Text("New machine")),
           Expanded(
@@ -66,14 +67,52 @@ class _MachinesState extends State<Machines> {
             onRefresh: _onRefresh,
             onLoading: _onLoading,
             child: ListView.builder(
-              itemBuilder: (c, i) =>
-                  Card(elevation: 0, child: Center(child: Text(items[i]))),
-              itemExtent: 100.0,
-              itemCount: items.length,
-            ),
+                itemCount: items.length,
+                itemBuilder: (context, int index) {
+                  return Slidable(
+                    actionPane: SlidableDrawerActionPane(),
+                    actions: [
+                      IconSlideAction(
+                        caption: 'Remove',
+                        color: Colors.red,
+                        icon: Icons.delete,
+                        onTap: () => removeMachine(index),
+                      ),
+                      IconSlideAction(
+                        caption: 'Edit',
+                        color: Colors.blue,
+                        icon: Icons.edit,
+                        onTap: () => editMachine(context, index),
+                      )
+                    ],
+                    child: ListTile(
+                      leading: Icon(Icons.message),
+                      title: Text("${items[index].name}"),
+                      subtitle: Text("${items[index].type}"),
+                      trailing: Icon(Icons.arrow_back),
+                    ),
+                  );
+                }),
           ))
         ],
       ),
     ));
+  }
+
+  removeMachine(index) async {
+    var response = await MachinesDatabase.instance.delete(items[index].id);
+    setState(() {
+      items.removeAt(index);
+    });
+  }
+
+  editMachine(context, index) {
+    Navigator.of(context)
+        .pushNamed("/machine_action", arguments: items[index].id);
+  }
+
+  @override
+  void dispose() {
+    super.dispose();
   }
 }
